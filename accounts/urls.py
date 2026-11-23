@@ -13,4 +13,5 @@ urlpatterns = [
     path("add-question/", views.add_question, name="add_question"),
     path("edit-question/<int:id>/", views.edit_question, name="edit_question"),
     path("delete-question/<int:id>/", views.delete_question, name="delete_question"),
+    path("mcq-quiz/", views.mcq_quiz, name="mcq_quiz"),
 ]

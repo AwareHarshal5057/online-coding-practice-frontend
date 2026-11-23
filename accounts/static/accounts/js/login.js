@@ -39,9 +39,9 @@ loginForm.addEventListener("submit", async function (event) {
             );
         }
 
-        localStorage.setItem("authToken", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
-
+       localStorage.setItem("authToken", data.access);
+       localStorage.setItem("refreshToken", data.refresh);
+       localStorage.setItem("user", JSON.stringify(data.user));
         loginMessage.textContent =
             "Login successful! Opening Coding Page...";
 

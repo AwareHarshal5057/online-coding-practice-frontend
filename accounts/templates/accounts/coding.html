@@ -20,9 +20,15 @@
             CodePractice
         </div>
 
-        <a href="{% url 'home' %}" class="nav-home-btn">
-            Dashboard
-        </a>
+        <div>
+            <a href="{% url 'home' %}" class="nav-home-btn">
+                Dashboard
+            </a>
+
+            <a href="{% url 'mcq_quiz' %}" class="nav-home-btn">
+                MCQ Quiz
+            </a>
+        </div>
     </nav>
 
     <main class="coding-container">
@@ -138,7 +144,11 @@
 
             <div class="dialog-actions">
 
-                <button type="submit" class="add-question-btn">
+                <button
+                    type="submit"
+                    id="saveQuestionBtn"
+                    class="add-question-btn"
+                >
                     Save Question
                 </button>
 

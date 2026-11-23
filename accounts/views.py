@@ -48,3 +48,7 @@ def edit_question(request, id):
 # Delete Question
 def delete_question(request, id):
     return redirect("coding")
+
+
+def mcq_quiz(request):
+    return render(request, "accounts/mcq_quiz.html")

@@ -23,6 +23,8 @@ const questionDifficulty = document.getElementById("questionDifficulty");
 const sampleInput = document.getElementById("sampleInput");
 const sampleOutput = document.getElementById("sampleOutput");
 
+const saveButton = document.getElementById("saveQuestionBtn");
+
 let allQuestions = [];
 let messageTimer;
 
@@ -33,9 +35,26 @@ function getToken() {
 }
 
 
+// Check login
+function checkLogin() {
+    const token = getToken();
+
+    if (!token) {
+        showMessage("Please login first to perform this action.", "error");
+
+        setTimeout(function () {
+            window.location.href = "/accounts/login/";
+        }, 1000);
+
+        return false;
+    }
+
+    return token;
+}
+
+
 // Show message
 function showMessage(message, type = "success") {
-
     apiMessage.textContent = message;
     apiMessage.hidden = false;
 
@@ -52,9 +71,7 @@ function showMessage(message, type = "success") {
 
 // Escape HTML
 function escapeHTML(value) {
-
     return String(value ?? "").replace(/[&<>"']/g, function (character) {
-
         return {
             "&": "&amp;",
             "<": "&lt;",
@@ -62,14 +79,12 @@ function escapeHTML(value) {
             '"': "&quot;",
             "'": "&#039;"
         }[character];
-
     });
 }
 
 
 // API response handling
 async function getResponseData(response) {
-
     const text = await response.text();
 
     if (!text) {
@@ -84,15 +99,30 @@ async function getResponseData(response) {
 }
 
 
+// Get error message
+function getErrorMessage(data) {
+    if (data.detail) {
+        return data.detail;
+    }
+
+    if (data.message) {
+        return data.message;
+    }
+
+    if (data.error) {
+        return data.error;
+    }
+
+    return JSON.stringify(data);
+}
+
+
 // Load questions from backend
 async function loadQuestions() {
-
     try {
-
         questionsList.innerHTML = "<p>Loading questions...</p>";
 
         const response = await fetch(API_URL);
-
         const data = await getResponseData(response);
 
         if (!response.ok) {
@@ -104,7 +134,6 @@ async function loadQuestions() {
         renderQuestions();
 
     } catch (error) {
-
         console.error("Questions Error:", error);
 
         questionsList.innerHTML = "<p>Failed to load questions.</p>";
@@ -116,30 +145,24 @@ async function loadQuestions() {
 
 // Display questions
 function renderQuestions() {
-
     const selectedDifficulty = difficultyFilter.value;
 
     const filteredQuestions = allQuestions.filter(function (question) {
-
         return selectedDifficulty === "All" ||
             question.difficulty === selectedDifficulty;
-
     });
 
     if (filteredQuestions.length === 0) {
-
         questionsList.innerHTML = `
             <div class="empty-questions">
                 <h3>No Questions Available</h3>
                 <p>There are no questions for this difficulty level.</p>
             </div>
         `;
-
         return;
     }
 
     questionsList.innerHTML = filteredQuestions.map(function (question) {
-
         const id = Number(question.id);
         const difficulty = escapeHTML(question.difficulty);
 
@@ -220,15 +243,12 @@ function renderQuestions() {
 
             </div>
         `;
-
     }).join("");
-
 }
 
 
-// Submit Code to Backend
+// Submit Code to Backend (Login Required)
 questionsList.addEventListener("submit", async function (event) {
-
     if (!event.target.matches(".code-submit-form")) {
         return;
     }
@@ -236,7 +256,6 @@ questionsList.addEventListener("submit", async function (event) {
     event.preventDefault();
 
     const form = event.target;
-
     const submitButton = form.querySelector(".submit-code-btn");
     const textarea = form.querySelector("textarea");
 
@@ -245,11 +264,9 @@ questionsList.addEventListener("submit", async function (event) {
     ).value;
 
     const submittedCode = textarea.value.trim();
-    const token = getToken();
+    const token = checkLogin();
 
     if (!token) {
-        showMessage("Please login again.", "error");
-        window.location.href = "/accounts/login/";
         return;
     }
 
@@ -262,32 +279,22 @@ questionsList.addEventListener("submit", async function (event) {
     submitButton.textContent = "Submitting...";
 
     try {
-
         const response = await fetch(SUBMISSIONS_URL, {
-
             method: "POST",
-
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Token ${token}`
+                "Authorization": `Bearer ${token}`
             },
-
             body: JSON.stringify({
                 question: Number(id),
                 submitted_code: submittedCode
             })
-
         });
 
         const data = await getResponseData(response);
 
         if (!response.ok) {
-            throw new Error(
-                data.detail ||
-                data.error ||
-                data.message ||
-                "Code submission failed."
-            );
+            throw new Error(getErrorMessage(data));
         }
 
         showMessage(
@@ -298,32 +305,29 @@ questionsList.addEventListener("submit", async function (event) {
         textarea.value = "";
 
     } catch (error) {
-
         console.error("Submission Error:", error);
-
         showMessage(error.message, "error");
 
     } finally {
-
         submitButton.disabled = false;
         submitButton.textContent = "Submit Code";
-
     }
-
 });
 
 
 // Open Add Question Dialog
 addQuestionBtn.addEventListener("click", function () {
+    if (!checkLogin()) {
+        return;
+    }
 
     questionForm.reset();
-
     questionId.value = "";
 
     dialogTitle.textContent = "Add New Question";
+    saveButton.textContent = "Save Question";
 
     questionDialog.showModal();
-
 });
 
 
@@ -333,13 +337,11 @@ function closeQuestionDialog() {
 }
 
 closeDialogBtn.addEventListener("click", closeQuestionDialog);
-
 cancelDialogBtn.addEventListener("click", closeQuestionDialog);
 
 
-// Edit and Delete Questions
+// Edit and Delete Questions (Login Required)
 questionsList.addEventListener("click", async function (event) {
-
     const button = event.target.closest("button[data-action]");
 
     if (!button) {
@@ -349,17 +351,12 @@ questionsList.addEventListener("click", async function (event) {
     const id = Number(button.dataset.id);
     const action = button.dataset.action;
 
-    const token = getToken();
-
-    if (!token) {
-        showMessage("Please login again.", "error");
-        window.location.href = "/accounts/login/";
-        return;
-    }
-
-
     // Edit Question
     if (action === "edit") {
+
+        if (!checkLogin()) {
+            return;
+        }
 
         const question = allQuestions.find(function (item) {
             return Number(item.id) === id;
@@ -373,18 +370,24 @@ questionsList.addEventListener("click", async function (event) {
         questionTitle.value = question.title;
         questionDescription.value = question.description;
         questionDifficulty.value = question.difficulty;
-        sampleInput.value = question.sample_input;
-        sampleOutput.value = question.sample_output;
+        sampleInput.value = question.sample_input || "";
+        sampleOutput.value = question.sample_output || "";
 
         dialogTitle.textContent = "Edit Question";
+        saveButton.textContent = "Update Question";
 
         questionDialog.showModal();
-
     }
 
 
     // Delete Question
     if (action === "delete") {
+
+        const token = checkLogin();
+
+        if (!token) {
+            return;
+        }
 
         const confirmed = confirm(
             "Are you sure you want to delete this question?"
@@ -397,19 +400,17 @@ questionsList.addEventListener("click", async function (event) {
         button.disabled = true;
 
         try {
-
             const response = await fetch(`${API_URL}${id}/`, {
-
                 method: "DELETE",
-
                 headers: {
-                    "Authorization": `Token ${token}`
+                    "Authorization": `Bearer ${token}`
                 }
-
             });
 
+            const data = await getResponseData(response);
+
             if (!response.ok) {
-                throw new Error("Question deletion failed.");
+                throw new Error(getErrorMessage(data));
             }
 
             showMessage("Question deleted successfully!", "success");
@@ -417,87 +418,59 @@ questionsList.addEventListener("click", async function (event) {
             await loadQuestions();
 
         } catch (error) {
-
             console.error("Delete Error:", error);
-
             showMessage(error.message, "error");
 
             button.disabled = false;
-
         }
-
     }
-
 });
 
 
-// Add and Update Question
+// Add and Update Question (Login Required)
 questionForm.addEventListener("submit", async function (event) {
-
     event.preventDefault();
 
-    const token = getToken();
+    const token = checkLogin();
 
     if (!token) {
-        showMessage("Please login again.", "error");
-        window.location.href = "/accounts/login/";
         return;
     }
 
     const id = questionId.value;
 
     const questionData = {
-
         title: questionTitle.value.trim(),
-
         description: questionDescription.value.trim(),
-
         difficulty: questionDifficulty.value,
-
         sample_input: sampleInput.value.trim(),
-
         sample_output: sampleOutput.value.trim()
-
     };
 
     const url = id ? `${API_URL}${id}/` : API_URL;
-
     const method = id ? "PATCH" : "POST";
-
-    const saveButton = document.getElementById("saveQuestionBtn");
 
     saveButton.disabled = true;
     saveButton.textContent = "Saving...";
 
     try {
-
         const response = await fetch(url, {
-
             method: method,
-
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Token ${token}`
+               "Authorization": `Bearer ${token}`
             },
-
             body: JSON.stringify(questionData)
-
         });
 
         const data = await getResponseData(response);
 
         if (!response.ok) {
-
-            throw new Error(
-                JSON.stringify(data)
-            );
-
+            throw new Error(getErrorMessage(data));
         }
 
         questionDialog.close();
-
         questionForm.reset();
-
         questionId.value = "";
 
         showMessage(
@@ -510,18 +483,15 @@ questionForm.addEventListener("submit", async function (event) {
         await loadQuestions();
 
     } catch (error) {
-
         console.error("Save Question Error:", error);
-
         showMessage(error.message, "error");
 
     } finally {
-
         saveButton.disabled = false;
-        saveButton.textContent = "Save Question";
-
+        saveButton.textContent = questionId.value
+            ? "Update Question"
+            : "Save Question";
     }
-
 });
 
 

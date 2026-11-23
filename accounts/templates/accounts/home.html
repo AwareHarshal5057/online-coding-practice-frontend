@@ -21,6 +21,14 @@
             CodePractice
         </div>
 
+        <div class="nav-links">
+            <a href="{% url 'home' %}">Home</a>
+
+            <a href="{% url 'coding' %}">Coding Practice</a>
+
+            <a href="{% url 'mcq_quiz' %}">MCQ Quiz</a>
+        </div>
+
         <form id="logoutForm">
             <button type="submit" class="logout-btn">
                 Logout
@@ -48,6 +56,10 @@
                 Start Coding →
             </a>
 
+            <a href="{% url 'mcq_quiz' %}" class="start-btn">
+                Start MCQ Quiz →
+            </a>
+
         </section>
 
 
@@ -65,16 +77,24 @@
                     Practice different programming questions
                     and improve your coding knowledge.
                 </p>
+
+                <a href="{% url 'coding' %}" class="start-btn">
+                    Open Coding →
+                </a>
             </div>
 
 
             <div class="card">
-                <h3>📚 Python Questions</h3>
+                <h3>📚 Python MCQ Quiz</h3>
 
                 <p>
-                    Learn Python by solving questions
-                    from different difficulty levels.
+                    Test your Python knowledge by solving
+                    multiple-choice questions.
                 </p>
+
+                <a href="{% url 'mcq_quiz' %}" class="start-btn">
+                    Start Quiz →
+                </a>
             </div>
 
 
@@ -110,20 +130,15 @@
         const userData = localStorage.getItem("user");
 
         if (userData) {
-
             try {
-
                 const user = JSON.parse(userData);
 
                 document.getElementById("username").textContent =
                     user.username || "Student";
 
             } catch (error) {
-
                 console.error("User Data Error:", error);
-
             }
-
         }
     </script>
 
